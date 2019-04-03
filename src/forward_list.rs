@@ -2,6 +2,7 @@ use std::mem::swap;
 use std::ptr::NonNull;
 use std::fmt;
 use std::marker::PhantomData;
+use std::iter::{FromIterator, IntoIterator};
 
 pub struct Node<T> {
   pub val: T,
@@ -15,6 +16,7 @@ pub struct ForwardList<T> {
 }
 
 impl<T> Default for ForwardList<T> {
+  #[inline]
   fn default() -> Self {
     ForwardList{ head: None, tail: None, marker: PhantomData::default() }
   }
@@ -34,12 +36,14 @@ impl<T> ForwardList<T> {
     }
   }
 
+  #[inline]
   pub fn front(&self) -> Option<&T> {
     unsafe {
       self.head.as_ref().map(|node| &node.as_ref().val)
     }
   }
 
+  #[inline]
   pub fn front_mut(&mut self) -> Option<&mut T> {
     unsafe {
       self.head.as_mut().map(|node| &mut node.as_mut().val)
@@ -140,21 +144,27 @@ impl<T> ForwardList<T> {
     Iter { current: self.head, marker: PhantomData::default() }
   }
 
+  pub fn iter_mut(&self) -> IterMut<T> {
+    IterMut { current: self.head, marker: PhantomData::default() }
+  }
+
   pub fn is_empty(&self) -> bool {
     self.head.is_none()
   }
-}
 
-impl<T> Iterator for ForwardList<T> {
-  type Item = T;
-  fn next(&mut self) -> Option<Self::Item> {
-    self.pop_front()
+  pub fn new() -> Self {
+    Self::default()
   }
 }
 
 pub struct Iter<'a, T> {
   current: Option<NonNull<Node<T>>>,
   marker: PhantomData<&'a Box<Node<T>>>,
+}
+
+pub struct IterMut<'a, T> {
+  current: Option<NonNull<Node<T>>>,
+  marker: PhantomData<&'a mut Box<Node<T>>>,
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -165,6 +175,21 @@ impl<'a, T> Iterator for Iter<'a, T> {
         let node = &*current.as_ptr();
         self.current = node.next;
         Some(&node.val)
+      }
+    } else {
+      None
+    }
+  }
+}
+
+impl<'a, T> Iterator for IterMut<'a, T> {
+  type Item = &'a mut T;
+  fn next(&mut self) -> Option<&'a mut T> {
+    if let Some(current) = self.current {
+      unsafe {
+        let node = &mut *current.as_ptr();
+        self.current = node.next;
+        Some(&mut node.val)
       }
     } else {
       None
@@ -189,6 +214,62 @@ impl<T> Drop for ForwardList<T> {
   }
 }
 
+impl<T> FromIterator<T> for ForwardList<T> {
+  fn from_iter<I>(iter: I) -> Self
+    where I: IntoIterator<Item = T> {
+      let mut iter = iter.into_iter();
+      let mut l = ForwardList::default();
+      while let Some(item) = iter.next() {
+        l.push_back(item);
+      }
+      l
+  }
+}
+
+impl<T: Clone> Clone for ForwardList<T> {
+  #[inline]
+  fn clone(&self) -> Self {
+    self.iter().map(|item| item.clone()).collect()
+  }
+}
+
+pub struct IntoIter<T> {
+  list: ForwardList<T>
+}
+
+impl<T> Iterator for IntoIter<T> {
+  type Item = T;
+  #[inline]
+  fn next(&mut self) -> Option<Self::Item> {
+    self.list.pop_front()
+  }
+}
+
+impl<T> IntoIterator for ForwardList<T> {
+  type Item = T;
+  type IntoIter = IntoIter<T>;
+  #[inline]
+  fn into_iter(self) -> IntoIter<T> {
+    IntoIter { list: self }
+  }
+}
+
+impl<'a, T> IntoIterator for &'a ForwardList<T> {
+  type Item = &'a T;
+  type IntoIter = Iter<'a, T>;
+  fn into_iter(self) -> Iter<'a, T> {
+    self.iter()
+  }
+}
+
+impl<'a, T> IntoIterator for &'a mut ForwardList<T> {
+  type Item = &'a mut T;
+  type IntoIter = IterMut<'a, T>;
+  fn into_iter(self) -> IterMut<'a, T> {
+    self.iter_mut()
+  }
+}
+
 #[test]
 fn test() {
   let mut a = ForwardList::default();
@@ -206,7 +287,12 @@ fn test() {
     let x: Vec<_> = a.iter().collect();
     assert!(x == vec![&5,&2,&7,&1,&4,&3]);
   }
-  let x: Vec<_> = a.collect();
+  b = a.clone();
+  let mut x: Vec<_> = a.into_iter().collect();
   assert!(x == vec![5,2,7,1,4,3]);
+  let x: Vec<_> = (&b).into_iter().collect();
+  assert!(x == vec![&5,&2,&7,&1,&4,&3]);
+  let x: Vec<_> = (&mut b).into_iter().collect();
+  assert!(x == vec![&mut 5,&mut 2,&mut 7,&mut 1,&mut 4,&mut 3]);
 }
 

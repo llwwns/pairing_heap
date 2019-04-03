@@ -5,3 +5,12 @@ authors = ["Wei Li <llwwns@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+
+[lib]
+name = "pairing_heap"
+path = "src/lib.rs"
+
+[[bin]]
+name = "main"
+doc = false
+path = "src/main.rs"
