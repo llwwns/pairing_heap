@@ -3,14 +3,14 @@ use forward_list::ForwardList;
 use std::mem::swap;
 use std::iter::{FromIterator, IntoIterator};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PairingHeap<T: PartialOrd> {
   Empty,
   Head(ParingNode<T>)
 }
 use PairingHeap::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ParingNode<T: PartialOrd> {
   val: T,
   children: ForwardList<ParingNode<T>>,
@@ -139,7 +139,8 @@ impl<T: PartialOrd> FromIterator<T> for PairingHeap<T> {
    b.insert(1);
    b.insert(4);
    a.merge(b);
+   a.merge(a.clone());
    assert!(a.get_minium().unwrap() == &1);
    let x: Vec<_> = a.into_iter().collect();
-   assert!(x == vec![1,2,3,4,5,7]);
+   assert!(x == vec![1,1,2,2,3,3,4,4,5,5,7,7]);
  }

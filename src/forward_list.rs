@@ -63,7 +63,7 @@ impl<T> ForwardList<T> {
   }
 
   pub fn push_front(&mut self, elt: T) {
-    if let Some(mut head) = self.head {
+    if let Some(head) = self.head {
       unsafe {
         let n = Box::new(Node{ val: elt, next: Some(head) });
         let n = Some(NonNull::new_unchecked(Box::into_raw(n)));
