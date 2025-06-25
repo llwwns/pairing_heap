@@ -217,9 +217,9 @@ impl<T> Drop for ForwardList<T> {
 impl<T> FromIterator<T> for ForwardList<T> {
   fn from_iter<I>(iter: I) -> Self
     where I: IntoIterator<Item = T> {
-      let mut iter = iter.into_iter();
+      let iter = iter.into_iter();
       let mut l = ForwardList::default();
-      while let Some(item) = iter.next() {
+      for item in iter {
         l.push_back(item);
       }
       l
@@ -229,7 +229,7 @@ impl<T> FromIterator<T> for ForwardList<T> {
 impl<T: Clone> Clone for ForwardList<T> {
   #[inline]
   fn clone(&self) -> Self {
-    self.iter().map(|item| item.clone()).collect()
+    self.iter().cloned().collect()
   }
 }
 

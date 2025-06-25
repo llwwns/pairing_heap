@@ -2,7 +2,7 @@
 name = "pairing_heap"
 version = "0.1.0"
 authors = ["Wei Li <llwwns@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 
